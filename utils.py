@@ -203,7 +203,7 @@ class SGD:
         delta_t = [np.zeros(b.shape) for b in net.biases]
         delta_b = [np.zeros(w.shape) for t in net.theta]
         for x, y in batch:
-            nabla_t, nabla_b = backprop(net, x, y)
+            nabla_t, nabla_b = backprop(net, x, y, mu, v)
             delta_t = delta_t + nabla_t
             delta_b = delta_b + nabla_b
         # t(l) = t(l) - alpha[(delta_t(l)/m) + lmbda * t(l)]
@@ -216,10 +216,12 @@ class SGD:
             np.multiply(delta_b, 1 / len(batch)))
         return v
 
-    def backprop(net, x, y):
+    def backprop(net, x, y, mu, v):
         """Returns a tuple containing the gradient for the network's cost
         function in terms of theta and bias based on input ``x`` and desired
-        output ``y`` as ``(nabla_t, nabla_b)``.
+        output ``y`` as ``(nabla_t, nabla_b)``. ``mu`` is the momentum
+        coefficient of the descent and ``v`` is the velocity. ``mu`` and ``v``
+        are needed to compute the Nesterov Accelerated Gradient.
         """
         nabla_t = [np.zeros(w.shape) for t in net.theta]
         nabla_b = [np.zeros(b.shape) for b in net.biases]
@@ -228,7 +230,7 @@ class SGD:
         a  =  x     # The activation of the previous layer
         al = [x]    # By layer activation, including input layer
         zl = [ ]    # By layer weighted inputs, skipping input layer
-        for b, t in zip(net.biases, net.theta):
+        for b, t in zip(net.biases, net.theta + np.multiply(mu, v)):
             z = z(t, a, b)
             a = net.sigmaVec(z)
             zl.append(z)
