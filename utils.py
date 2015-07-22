@@ -238,8 +238,8 @@ class SGD:
         nabla_t[-1] = np.dot(delta, np.transpose(al[-2]))
         nable_b[-1] = delta
         for l in xrange(2, net.nl):
-            nabla_b[-l] = delta
-            nabla_t[-l] = np.dot(delta, np.transpose(al[-l]))
             delta = np.multiply(np.dot(np.transpose(net.thata[-l]), delta),
                     net.sigmaPrimeVec(zl[-l]))
+            nabla_b[-l] = delta
+            nabla_t[-l] = np.dot(delta, np.transpose(al[-l]))
         return (nabla_t, babla_b)
