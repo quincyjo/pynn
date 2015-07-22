@@ -199,10 +199,13 @@ class SGD:
             nabla_t, nabla_b = backprop(net, x, y)
             delta_t = delta_t + nabla_t
             delta_b = delta_b + nabla_b
-        net.theta = [t - alpha * (dt / len(batch) + lmbda * t)
-                for t, dt in zip(net.theta, delta_t)]
-        net.biases = [b - alpha * (db / len(batch))
-                for b, db in zip(net.biases, delta_b)]
+        # W(l) = W(l) - alpha [(delta_w(l)/m) + lmbda * W(l)]
+        net.theta = net.theta - np.multiply(alpha,
+                np.multiply(delta_t, 1 / len(batch))) + np.multiply(lmbda,
+                net.theta)
+        #b(l) = b(l) - alpha[dela_b(l)/m]
+        net.biases = net.biases - np.multiply(alpha,
+                np.multiply(delta_b, 1 / len(batch)))
 
     def backprop(net, x, y):
         """Returns a tuple containing the gradient for the network's cost
