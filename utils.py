@@ -166,13 +166,15 @@ class SGD:
 
     def train(net, trainingData, epochs, batchSize, alpha,
               lmbda   = 0.0,
+              mu      = 0.0,
               verbose = False):
         """Train the neural network using mini-batch stochastic gradient
         descent.  The ``trainingData`` is a list of tuples ``(x, y)``
         representing the training inputs and the desired outputs.  ``epochs`` is
         the number of training iterations through ``trainingData``.
         ``batchSize`` is the size of each batch. ``alpha`` is the learning
-        rate, ``lmbda`` is the weight decay regularization parameter.
+        rate, ``lmbda`` is the weight decay regularization parameter. ``mu`` is
+        the momentum coefficient.
         ``verbose`` determines whether the completion of each epoch is posted."""
         n = len(trainingData)
         # Shuffle data and train on each minibatch for each epoch
@@ -181,17 +183,22 @@ class SGD:
             mini_batches = [
                 trainingData[i:i+batchSize]
                 for i in xrange(0, n, batchSize)]
+            v = 0.0
             for mini_batch in mini_batches:
-                bath_gradient_descent(
-                    mini_batch, alpha, lmbda, len(trainingData))
+                v = bath_gradient_descent(mini_batch, alpha, lmbda, mu, v)
             if verbose:
                 print "Epoch %s training complete\n" % i
 
-    def batch_gradient_descent(net, batch, alpha, lmbda, n):
+    def batch_gradient_descent(net, batch, alpha, lmbda, mu, v):
         """Executes on iteration of batch gradient descent. ``batch`` is the
         the mini batch as a list of tuples in the form ``(x, y)``, ``alpha``
         is the learning rate, ``lmbda`` is the regularization parameter, and
-        ``n`` is the total training set length.
+        ``n`` is the total training set length. ``mu`` is the momentum and ``v``
+        the velocity, in other words, the previous ``delta_t``.
+
+        The method returns ``v`` for storing sotring it as the velocity for
+        momentum descent. Essentially, the method returns the value to be passed
+        as ``v`` on the next call, with an initial call of ``v`` = 0.
         """
         delta_t = [np.zeros(b.shape) for b in net.biases]
         delta_b = [np.zeros(w.shape) for t in net.theta]
@@ -199,13 +206,15 @@ class SGD:
             nabla_t, nabla_b = backprop(net, x, y)
             delta_t = delta_t + nabla_t
             delta_b = delta_b + nabla_b
-        # W(l) = W(l) - alpha [(delta_w(l)/m) + lmbda * W(l)]
-        net.theta = net.theta - np.multiply(alpha,
-                np.multiply(delta_t, 1 / len(batch))) + np.multiply(lmbda,
-                net.theta)
-        #b(l) = b(l) - alpha[dela_b(l)/m]
+        # t(l) = t(l) - alpha[(delta_t(l)/m) + lmbda * t(l)]
+        v = np.multiply(mu, v) + np.multiply(alpha,
+            np.multiply(delta_t, 1 / len(batch)) + np.multiply(lmbda,
+            net.theta))
+        net.theta = net.theta - v
+        #b(l) = b(l) - alpha[delta_b(l)/m]
         net.biases = net.biases - np.multiply(alpha,
-                np.multiply(delta_b, 1 / len(batch)))
+            np.multiply(delta_b, 1 / len(batch)))
+        return v
 
     def backprop(net, x, y):
         """Returns a tuple containing the gradient for the network's cost

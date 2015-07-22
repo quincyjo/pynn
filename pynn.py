@@ -92,7 +92,7 @@ class Network():
 
     def train(self, trainingData, epochs, miniBatchSize, alpha,
             lmbda    = 0.0,
-            momentum = 0.0,
+            mu       = 0.0,
             verbose  = False):
         """Trained the network by calling the train(...) method of the class
         passed through the train parameter upon the network's initialization.
@@ -101,11 +101,12 @@ class Network():
         input and ``y`` is the desired output. ``epochs`` is the number of
         training cycles to be completed. ``miniBatchSize`` is the size of the
         batch to be used on each epoch. ``alpha`` is the learning rate.
-        ``lmbda`` is the regularization parameter. ``momentum`` is the momentum
-        of the descent.
+        ``lmbda`` is the regularization parameter. ``mu`` is the momentum
+        coefficient of the descent.
         """
         desc.train(self, trainingData, epochs, miniBatchSize, alpha,
                 lmbda   = lmbda,
+                mu      = mu,
                 verbose = verbose)
 
     def save(self, filename, compressed=True):
