@@ -40,7 +40,7 @@ def z(theta, x, bias):
      Takes a list of weights ``theta`` and a list of inputs ``x`` and returns
      a list of weighted inputs with the given list of biases ``bias`` as ``w*x+b``.
     """
-    return np.dot(theta, x) + bias
+    return np.multiply(np.transpose(theta), x) + b
 
 # Activation classes
 # Required Functions:
@@ -222,11 +222,12 @@ class SGD:
             zl.append(z)
             al.append(a)
         # Preform a back propagation
-        delta = net.costPrimeVec(a, y) * net.sigmaPrimeVec(zl[-1])
-        nabla_t[-1] = np.dot(delta, al[-2].transpose())
+        delta = np.multiply(net.costPrimeVec(a, y), net.sigmaPrimeVec(zl[-1]))
+        nabla_t[-1] = np.dot(delta, np.transpose(al[-2]))
         nable_b[-1] = delta
         for l in xrange(2, net.nl):
-            delta = np.dot(net.thata[-l].transpose(), delta) * net.sigmaPrimeVec(zl[-l])
-            nabla_t[-l] = np.dot(delta, al[-l-1].transpose())
             nabla_b[-l] = delta
+            nabla_t[-l] = np.dot(delta, np.transpose(al[-l]))
+            delta = np.multiply(np.dot(np.transpose(net.thata[-l]), delta),
+                    net.sigmaPrimeVec(zl[-l]))
         return (nabla_t, babla_b)
