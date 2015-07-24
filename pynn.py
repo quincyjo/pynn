@@ -86,13 +86,14 @@ class Network():
     def feedforward(self, x):
         """Returns the output of the network for input ``x``."""
         a = x
-        for theta, b in zip(self.theta, self.biases):
-            a = self.sigmaVec(z(theta, a, b))
+        for theta, bias in zip(self.theta, self.biases):
+            a = self.sigmaVec(z(theta, a, bias))
         return a
 
     def train(self, trainingData, epochs, miniBatchSize, alpha,
             lmbda    = 0.0,
             mu       = 0.0,
+            p        = 1.0,
             verbose  = False):
         """Trained the network by calling the train(...) method of the class
         passed through the train parameter upon the network's initialization.
@@ -102,11 +103,13 @@ class Network():
         training cycles to be completed. ``miniBatchSize`` is the size of the
         batch to be used on each epoch. ``alpha`` is the learning rate.
         ``lmbda`` is the regularization parameter. ``mu`` is the momentum
-        coefficient of the descent.
+        coefficient of the descent. ``p`` is the probability of each neuron
+        being dropped out during training.
         """
         desc.train(self, trainingData, epochs, miniBatchSize, alpha,
                 lmbda   = lmbda,
                 mu      = mu,
+                p       = p,
                 verbose = verbose)
 
     def save(self, filename, compressed=True):

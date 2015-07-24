@@ -40,7 +40,19 @@ def z(theta, x, bias):
      Takes a list of weights ``theta`` and a list of inputs ``x`` and returns
      a list of weighted inputs with the given list of biases ``bias`` as ``w*x+b``.
     """
-    return np.multiply(np.transpose(theta), x) + b
+    return np.dot(theta, x) + bias
+
+def bernoulli(layers, p):
+    """Computes and returns a numpy array for use in dropout, creating an 2d
+    array where each row represents a layer in the network with a either a 0 or a
+    1. The output layer will always be a row of ones. ``layers`` is the nets
+    ``layers`` internal variable and ``p`` is the probability of each neuron
+    being dropped, a value between 0 and 1.
+    """
+    bs = [[np.random.binomial(1, p) for n in xrange(l)] for l in layers[:-1]]
+    bs.append([1]*layers[-1])
+    return bs
+
 
 # Activation classes
 # Required Functions:
@@ -167,6 +179,7 @@ class SGD:
     def train(net, trainingData, epochs, batchSize, alpha,
               lmbda   = 0.0,
               mu      = 0.0,
+              p       = 1.0,
               verbose = False):
         """Train the neural network using mini-batch stochastic gradient
         descent.  The ``trainingData`` is a list of tuples ``(x, y)``
@@ -174,7 +187,7 @@ class SGD:
         the number of training iterations through ``trainingData``.
         ``batchSize`` is the size of each batch. ``alpha`` is the learning
         rate, ``lmbda`` is the weight decay regularization parameter. ``mu`` is
-        the momentum coefficient.
+        the momentum coefficient. ``p`` is the dropout porabability.
         ``verbose`` determines whether the completion of each epoch is posted."""
         n = len(trainingData)
         # Shuffle data and train on each minibatch for each epoch
@@ -185,16 +198,17 @@ class SGD:
                 for i in xrange(0, n, batchSize)]
             v = 0.0
             for mini_batch in mini_batches:
-                v = bath_gradient_descent(mini_batch, alpha, lmbda, mu, v)
+                v = bath_gradient_descent(net, mini_batch, alpha, lmbda, mu, v)
             if verbose:
                 print "Epoch %s training complete\n" % i
 
-    def batch_gradient_descent(net, batch, alpha, lmbda, mu, v):
+    def batch_gradient_descent(net, batch, alpha, lmbda, mu, p, v):
         """Executes on iteration of batch gradient descent. ``batch`` is the
         the mini batch as a list of tuples in the form ``(x, y)``, ``alpha``
         is the learning rate, ``lmbda`` is the regularization parameter, and
         ``n`` is the total training set length. ``mu`` is the momentum and ``v``
-        the velocity, in other words, the previous ``delta_t``.
+        the velocity, in other words, the previous ``delta_t``. ``p`` is the
+        dropout porabability.
 
         The method returns ``v`` for storing sotring it as the velocity for
         momentum descent. Essentially, the method returns the value to be passed
@@ -202,10 +216,11 @@ class SGD:
         """
         delta_t = [np.zeros(b.shape) for b in net.biases]
         delta_b = [np.zeros(w.shape) for t in net.theta]
+        ber = bernoulli(net.layers, p)
         for x, y in batch:
-            nabla_t, nabla_b = backprop(net, x, y, mu, v)
-            delta_t = delta_t + nabla_t
-            delta_b = delta_b + nabla_b
+            nabla_t, nabla_b = backprop(net, x, y, mu, v, ber)
+            delta_t = delta_t + np.multiply(ber[1:], nabla_t)
+            delta_b = delta_b + np.multiply(ber[1:], nabla_b)
         # t(l) = t(l) - alpha[(delta_t(l)/m) + lmbda * t(l)]
         v = np.multiply(mu, v) + np.multiply(alpha,
             np.multiply(delta_t, 1 / len(batch)) + np.multiply(lmbda,
@@ -216,21 +231,24 @@ class SGD:
             np.multiply(delta_b, 1 / len(batch)))
         return v
 
-    def backprop(net, x, y, mu, v):
+    def backprop(net, x, y, mu, v, ber):
         """Returns a tuple containing the gradient for the network's cost
         function in terms of theta and bias based on input ``x`` and desired
         output ``y`` as ``(nabla_t, nabla_b)``. ``mu`` is the momentum
         coefficient of the descent and ``v`` is the velocity. ``mu`` and ``v``
-        are needed to compute the Nesterov Accelerated Gradient.
+        are needed to compute the Nesterov Accelerated Gradient. ``ber`` is a
+        bernoulli distribution as an 2d-array with reach row representing the
+        status of the noded by layer.
         """
         nabla_t = [np.zeros(w.shape) for t in net.theta]
         nabla_b = [np.zeros(b.shape) for b in net.biases]
         # Preform a forward pass through the network and store the needed results
         # into arrays for the back propagation step.
-        a  =  x     # The activation of the previous layer
-        al = [x]    # By layer activation, including input layer
-        zl = [ ]    # By layer weighted inputs, skipping input layer
-        for b, t in zip(net.biases, net.theta + np.multiply(mu, v)):
+        a  = np.multiply(ber[1], x) # The activation of the previous layer
+        al = [a]                    # By layer activation, including input layer
+        zl = [ ]                    # By layer weighted inputs, skipping input layer
+        for b, t in zip(net.biases, np.multiply(ber[1:], net.theta +
+            np.multiply(mu, v))):
             z = z(t, a, b)
             a = net.sigmaVec(z)
             zl.append(z)
@@ -240,8 +258,9 @@ class SGD:
         nabla_t[-1] = np.dot(delta, np.transpose(al[-2]))
         nable_b[-1] = delta
         for l in xrange(2, net.nl):
-            delta = np.multiply(np.dot(np.transpose(net.thata[-l]), delta),
-                    net.sigmaPrimeVec(zl[-l]))
+            delta = np.multiply(np.dot(np.transpose(np.multiply(ber[-l],
+                net.thata[-l])), delta),
+                net.sigmaPrimeVec(zl[-l]))
             nabla_b[-l] = delta
             nabla_t[-l] = np.dot(delta, np.transpose(al[-l]))
         return (nabla_t, babla_b)
