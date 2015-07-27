@@ -46,8 +46,8 @@ def bernoulli(layers, p):
     """Computes and returns a numpy array for use in dropout, creating an 2d
     array where each row represents a layer in the network with a either a 0 or a
     1. The output layer will always be a row of ones. ``layers`` is the nets
-    ``layers`` internal variable and ``p`` is the probability of each neuron
-    being dropped, a value between 0 and 1.
+    ``layers`` internal variable and ``p`` is the inverse probability of each
+    neuron being dropped, a value between 0 and 1.
     """
     bs = [[np.random.binomial(1, p) for n in xrange(l)] for l in layers[:-1]]
     bs.append([1]*layers[-1])

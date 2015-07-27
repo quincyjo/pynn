@@ -86,7 +86,7 @@ class Network():
     def feedforward(self, x):
         """Returns the output of the network for input ``x``."""
         a = x
-        for theta, bias in zip(self.theta, self.biases):
+        for theta, bias in zip(np.multiply(self.p, self.theta), self.biases):
             a = self.sigmaVec(z(theta, a, bias))
         return a
 
@@ -103,8 +103,8 @@ class Network():
         training cycles to be completed. ``miniBatchSize`` is the size of the
         batch to be used on each epoch. ``alpha`` is the learning rate.
         ``lmbda`` is the regularization parameter. ``mu`` is the momentum
-        coefficient of the descent. ``p`` is the probability of each neuron
-        being dropped out during training.
+        coefficient of the descent. ``p`` is the inverse probability of each
+        neuron being dropped out during training.
         """
         desc.train(self, trainingData, epochs, miniBatchSize, alpha,
                 lmbda   = lmbda,
